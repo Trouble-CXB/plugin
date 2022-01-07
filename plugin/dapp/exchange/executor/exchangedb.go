@@ -532,8 +532,12 @@ func (a *Action) matchLimitOrder_Fix2(payload *et.LimitOrder, leftAccountDB, rig
 						done = true
 						break
 					}
+					order, err := findOrderByOrderID(a.statedb, a.localDB, matchorder.GetOrderID())
+					if err != nil || order.Status != et.Ordered {
+						continue
+					}
 					//撮合,指针传递
-					log, kv, err := a.matchModel(leftAccountDB, rightAccountDB, payload, matchorder, or, re, tCfg.GetFeeAddr()) // payload, or redundant
+					log, kv, err := a.matchModel(leftAccountDB, rightAccountDB, payload, order, or, re, tCfg.GetFeeAddr()) // payload, or redundant
 					if err != nil {
 						return nil, err
 					}
@@ -912,7 +916,7 @@ HERE:
 }
 
 //QueryOrderList 默认展示最新的
-func QueryOrderList(localdb dbm.KV, addr string, status, count, direction int32, primaryKey string) (types.Message, error) {
+func QueryOrderList(statedb dbm.KV, localdb dbm.KV, addr string, status, count, direction int32, primaryKey string) (types.Message, error) {
 	var table *tab.Table
 	if status == et.Completed || status == et.Revoked {
 		table = NewHistoryOrderTable(localdb)
@@ -937,7 +941,14 @@ func QueryOrderList(localdb dbm.KV, addr string, status, count, direction int32,
 	}
 	var orderList et.OrderList
 	for _, row := range rows {
-		order := row.Data.(*et.Order)
+		order, err := findOrderByOrderID(statedb, localdb, row.Data.(*et.Order).GetOrderID())
+		if err != nil {
+			return nil, err
+		}
+		if order.Status != et.Ordered {
+			_ = table.DelRow(order)
+			continue
+		}
 		//替换已经成交得量
 		order.Executed = order.GetLimitOrder().Amount - order.Balance
 		orderList.List = append(orderList.List, order)
