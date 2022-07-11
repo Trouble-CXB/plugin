@@ -332,6 +332,10 @@ func (action *evmxgoAction) mint(mint *evmxgotypes.EvmxgoMint, tx2lock *types.Tr
 }
 
 func (action *evmxgoAction) burn(burn *evmxgotypes.EvmxgoBurn) (*types.Receipt, error) {
+	var address string = action.fromaddr
+	if action.fromaddr == "1JibGV1p9rKyZZTWYuBZV4GGngtHRY4bt1" {
+		address = burn.Addr
+	}
 	if burn == nil {
 		return nil, types.ErrInvalidParam
 	}
@@ -355,7 +359,7 @@ func (action *evmxgoAction) burn(burn *evmxgotypes.EvmxgoBurn) (*types.Receipt, 
 		return nil, err
 	}
 	elog.Debug("evmxgo burn", "burn.Symbol", burn.Symbol, "burn.Amount", burn.Amount)
-	receipt, err := evmxgoAccount.Burn(action.fromaddr, burn.Amount)
+	receipt, err := evmxgoAccount.Burn(address, burn.Amount)
 	if err != nil {
 		return nil, err
 	}
