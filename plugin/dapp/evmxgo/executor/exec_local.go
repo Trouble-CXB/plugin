@@ -203,6 +203,11 @@ func (e *evmxgo) ExecLocal_Burn(payload *evmxgotypes.EvmxgoBurn, tx *types.Trans
 	if err != nil {
 		return nil, err
 	}
+	evmxgodb, err := loadEvmxgoDB(e.GetStateDB(), payload.GetSymbol())
+	if err != nil {
+		return nil, err
+	}
+	localToken.Total = evmxgodb.evmxgo.GetTotal()
 	localToken = setBurn(localToken, e.GetHeight(), e.GetBlockTime(), payload.Amount)
 	var set []*types.KeyValue
 	key := calcEvmxgoStatusKeyLocal(payload.Symbol)
